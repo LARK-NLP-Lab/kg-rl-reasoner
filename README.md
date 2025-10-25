@@ -1,6 +1,6 @@
 # Knowlege Graph-based Reward Modeling
 
-![Path workflow image]([PathExtractWorkflow.png](PathExtractWorkflow.png))
+![Path workflow image](PathExtractWorkflow.png)
 
 ## Publications
 
