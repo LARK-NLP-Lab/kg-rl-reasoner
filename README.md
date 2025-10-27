@@ -38,7 +38,7 @@ To run merge multiple models, model_merge.py can be used. It takes the arguments
 
 | Argument | Type | Default | Description |
 |-----------|------|----------|-------------|
-| `--model_names` | `list of string` | `path1`  `path2` | space separated paths of the model you want to merge. |
+| `--model_names` | `list of string` | `path1`  `path2` | Space separated paths of the model you want to merge. |
 | `--model_weights` | `list of float` | `0.5` `0.5` | Importance that you want to give to each model. |
 | `--output_path` | `str` | `./models_merged/Qwen7B` | Directory to save the merged model. |
 
@@ -50,3 +50,11 @@ For Chain-of-Thought distillation, you must first get the reasoning traces from 
 
 We have task specific evaluation script evaluate_models.py.
 
+| Argument | Type | Default | Description |
+|-----------|------|----------|-------------|
+| `--model_names` | `list of string` | `path1`  `path2` | Space separated paths of the model you want to evaluate. |
+| `--data_file` | `string` | `data/test` | Path of dataset you want to use for evaluation. |
+| `--eval_metric` | `str` | `d1` | The task setting you want to evaluate. |
+
+Apart from the above, the evaluate_diagnosis_prediction.py can be used for ProbSum Diagnosis prediction evaluation.
+medQA/ folder contains the script for medQA evaluation, and pdsqi-9 contains script for pdsqi-9 evaluation.
