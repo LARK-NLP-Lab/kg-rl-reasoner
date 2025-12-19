@@ -52,7 +52,6 @@ def parse_args():
     parser.add_argument('--input_dataset', type=str, default='../final_training_data/train_d1.pkl', help='dataset file')
     parser.add_argument('--val_dataset', type=str, default='../final_training_data/train_val_d1.pkl', help='val dataset file')
     parser.add_argument('--learning_rate', type=float, default=3e-5, help='learning rate')
-    parser.add_argument('--kl_lambda', type=float, default=0.05, help='beta')
     args = parser.parse_args()
     return args
 
@@ -166,7 +165,7 @@ def main():
     input_dataset = args.input_dataset
     val_dataset = args.val_dataset
     learning_rate = args.learning_rate
-    kl_lambda = args.kl_lambda
+
 
     os.makedirs(output_folder, exist_ok=True)
 
@@ -188,23 +187,8 @@ def main():
         prompt_data_val = pickle.load(f)    
     tokenizer = AutoTokenizer.from_pretrained(model_name, device_map="auto")
     
-    train_dataset = KLDivDataset(list(map(lambda x: formatting_prompts(x), prompt_data_train)), tokenizer)
-    train_val_dataset = KLDivDataset(list(map(lambda x: formatting_prompts(x), prompt_data_val)), tokenizer)
-
-
-    dataset_size = len(train_dataset) 
-    indices = list(range(dataset_size))
-    random.shuffle(indices)
-    subset_size = 100 
-    subset_indices = indices[:subset_size]
-    train_dataset = Subset(train_dataset, subset_indices)
-
-    val_dataset_size = len(train_val_dataset) 
-    val_indices = list(range(val_dataset_size))
-    random.shuffle(val_indices)
-    subset_size = 200 
-    subset_val_indices = val_indices[:subset_size]
-    train_val_dataset = Subset(train_val_dataset, subset_val_indices)
+    train_dataset = KLDivDataset(list(map(lambda x: formatting_prompts(x), prompt_data_train[:200])), tokenizer)
+    train_val_dataset = KLDivDataset(list(map(lambda x: formatting_prompts(x), prompt_data_val[:200])), tokenizer)
 
     sft_config = KLDivConfig(
         output_dir=f"./{output_folder}", 
@@ -214,13 +198,13 @@ def main():
         learning_rate=3e-5, 
         num_train_epochs=1,
         logging_dir= f'./{output_folder}/logs',
-        eval_strategy="epoch",
-        logging_strategy="epoch",
-        # eval_steps=20,
-        # logging_steps=20,
+        eval_strategy="steps",
+        eval_steps=50,
+        logging_strategy="steps",
+        logging_steps=50,
         save_strategy="no",
         # label_names=["completion"],
-        lambda_kl=kl_lambda,
+        lambda_kl=0.05, # will be overriden by optuna
         prediction_loss_only=True
     )
 
