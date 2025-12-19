@@ -159,10 +159,12 @@ def main():
         eval_steps=500,
         logging_steps=500,
         dataloader_pin_memory=False,
+        save_strategy="steps",
+        save_steps=500,
         save_total_limit=1,
         # label_names=["completion"],
         metric_for_best_model="eval_loss",
-        load_best_model_at_end=True
+        load_best_model_at_end=True,
     )
 
     trainer = KLDivSFTTrainer(
