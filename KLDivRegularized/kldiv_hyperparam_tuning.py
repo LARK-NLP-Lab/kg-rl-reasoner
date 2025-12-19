@@ -48,7 +48,7 @@ random.seed(seed)
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--model_name', type=str, default="Qwen/Qwen2.5-7B-Instruct", help='model name')
-    parser.add_argument('--output_dir', type=str, default='./hyperparam_search/Qwen7B_SFT_d1', help='output directory')
+    parser.add_argument('--output_dir', type=str, default='./hyperparam_search/Qwen7B_SFT_d1_temp', help='output directory')
     parser.add_argument('--input_dataset', type=str, default='../final_training_data/train_d1.pkl', help='dataset file')
     parser.add_argument('--val_dataset', type=str, default='../final_training_data/train_val_d1.pkl', help='val dataset file')
     parser.add_argument('--learning_rate', type=float, default=3e-5, help='learning rate')
@@ -67,7 +67,7 @@ def get_quantized_models(model_name):
         bnb_4bit_compute_dtype=torch.bfloat16
     )
 
-    tokenizer = AutoTokenizer.from_pretrained(model_name, device_map="auto")
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
 
     model_nf4 = AutoModelForCausalLM.from_pretrained(model_name, quantization_config=nf4_config)
 
@@ -100,14 +100,13 @@ class KLDivConfig(SFTConfig):
     )
 
 class KLDivSFTTrainer(Trainer):
-    def __init__(self, lambda_kl=0.05, **kwargs):
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        # self.base_model = base_model
-        self.lambda_kl = lambda_kl
         self.kl_fn = KLDivLoss(reduction="batchmean")
-    
 
     def compute_loss(self, model, inputs, return_outputs=False, **kwargs):
+        self.lambda_kl = self.args.lambda_kl
+
         sft_loss, outputs = super().compute_loss(model, inputs, return_outputs=True)
 
         logits = outputs.logits
@@ -126,10 +125,6 @@ class KLDivSFTTrainer(Trainer):
         kl_loss = self.kl_fn(log_probs, base_probs)
 
         loss = sft_loss + self.lambda_kl * kl_loss
-
-        # print("sft_loss", sft_loss)
-        # print("kl_loss", kl_loss)
-        # print("output shape", outputs.logits.shape)
 
         return (loss, outputs) if return_outputs else loss
 
@@ -192,18 +187,24 @@ def main():
     with open(val_dataset, 'rb') as f: 
         prompt_data_val = pickle.load(f)    
     tokenizer = AutoTokenizer.from_pretrained(model_name, device_map="auto")
-    # datasetFromList = Dataset.from_list(list(map(lambda x: formatting_prompts(x), prompt_data_train[:2])))
-    # evalDatasetFromList = Dataset.from_list(list(map(lambda x: formatting_prompts(x), prompt_data_val[:2])))
+    
     train_dataset = KLDivDataset(list(map(lambda x: formatting_prompts(x), prompt_data_train)), tokenizer)
     train_val_dataset = KLDivDataset(list(map(lambda x: formatting_prompts(x), prompt_data_val)), tokenizer)
 
 
-    dataset_size = len(train_dataset) # Replace 'your_dataset' with your actual dataset
+    dataset_size = len(train_dataset) 
     indices = list(range(dataset_size))
     random.shuffle(indices)
-    subset_size = 1000 # Desired size of your subset
+    subset_size = 100 
     subset_indices = indices[:subset_size]
     train_dataset = Subset(train_dataset, subset_indices)
+
+    val_dataset_size = len(train_val_dataset) 
+    val_indices = list(range(val_dataset_size))
+    random.shuffle(val_indices)
+    subset_size = 200 
+    subset_val_indices = val_indices[:subset_size]
+    train_val_dataset = Subset(train_val_dataset, subset_val_indices)
 
     sft_config = KLDivConfig(
         output_dir=f"./{output_folder}", 
