@@ -116,6 +116,11 @@ def pattern_reward_fn(**kwargs):
 
     return rewards
 
+
+# Reward for NHP
+# We first apply quickUMLS matcher to the extracted model completion and the label answer.
+# If we don't hit any matches, we go through the cui_to_entity.pkl dictionary and look for matches.
+# Finally, we compare the CUIs for both.
 def reward_fn_quickUMLS(extracted_ans, answer, matcher):
     pattern = r'<Answer>.*</Answer>'
 
@@ -171,6 +176,7 @@ def reward_func(is_prime=False, **kwargs):
             continue
 
         if task == "Multi_Path_Selection": # Covers the case of PN@10
+            # We check that the label path should be part of the model completion, and none of the wrong options should be part of the model's completion
             curr_reward = 1
             if isinstance(answer, list):
                 for p in answer:
@@ -183,9 +189,9 @@ def reward_func(is_prime=False, **kwargs):
                         curr_reward = 0
                         break
         elif task == "Path_Selection": # Covers cases of P@10 and P@2
+            # We check that the label path should be part of the model completion, and none of the wrong options should be part of the model's completion
             curr_reward = 1
-            # print("The extracted", extracted_ans)
-            # print("The ans", ans)            
+
             if answer not in extracted_ans:
                 curr_reward = 0
 
@@ -202,9 +208,9 @@ def reward_func(is_prime=False, **kwargs):
             curr_reward = reward_fn_quickUMLS(extracted_ans, ans, matcher)
 
         else: # PC case left
+            # Simply matching the ground truth label with the model completion
             curr_reward = 1
-            # print("The extracted", extracted_ans)
-            # print("The ans", ans)
+
             if ans not in extracted_ans:
                 curr_reward = 0
     
