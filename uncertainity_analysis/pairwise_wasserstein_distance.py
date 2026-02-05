@@ -76,7 +76,7 @@ def main():
     parser.add_argument('--base_model', type=str, default="Qwen/Qwen2.5-7B-Instruct", help='base model name')
     parser.add_argument('--output_name', type=str, default="./probsum_eval/Qwen7B_SFT_d1.csv", help='model output file name')
     parser.add_argument('--data_file', type=str, help='Data file')
-    parser.add_argument('--num_samples', type=int, default=20, help='number of samples')
+    parser.add_argument('--num_samples', type=int, help='number of samples')
     args = parser.parse_args()
 
 
@@ -89,7 +89,8 @@ def main():
     with open(data_file, "rb") as f:
         dataset = pickle.load(f)
 
-    dataset = dataset[:args.num_samples]
+    if args.num_samples:
+        dataset = dataset[:args.num_samples]
     tokenizer = AutoTokenizer.from_pretrained(base_model, padding_side="left")
     model = AutoModelForCausalLM.from_pretrained(model_name, quantization_config=nf4_config).to("cuda:0")
     base_model = AutoModelForCausalLM.from_pretrained(base_model, quantization_config=nf4_config).to("cuda:0")
